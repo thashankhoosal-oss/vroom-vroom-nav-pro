@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+
+  <head>
+    <meta charset="UTF-8">
+    <title>maps</title>
+    <link rel="stylesheet" href="./style.css">
+
+  </head>
+    
+  <body>
+  <!DOCTYPE html>
+<html>
+<head>
+    <title>Vroom Vroom Recycling: The Navigation Pro</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet-routing-machine/3.2.12/leaflet-routing-machine.css" />
+
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #f0f4f8; padding: 10px; margin: 0; }
+        .container { max-width: 420px; margin: 0 auto; background: white; padding: 20px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); position: relative; }
+
+        /* App Title Styling */
+        .app-header { text-align: center; margin-bottom: 15px; }
+        .app-header h1 { font-size: 20px; color: #27ae60; margin: 0; text-transform: uppercase; letter-spacing: 1px; }
+        .app-header p { font-size: 12px; color: #636e72; margin: 2px 0 0 0; font-weight: bold; }
+
+        /* Language Bar */
+        .lang-bar { display: flex; justify-content: center; margin-bottom: 10px; }
+        #lang-select { width: 100%; padding: 8px; font-size: 14px; border-radius: 8px; background: #27ae60; color: white; border: none; font-weight: bold; cursor: pointer; }
+
+        /* Power Dashboard */
+        .power-tab { background: #2d3436; color: white; padding: 12px; border-radius: 10px; margin-bottom: 10px; border-left: 4px solid #f1c40f; }
+        .progress-bar { width: 100%; height: 8px; background: #636e72; border-radius: 4px; overflow: hidden; margin: 5px 0; }
+        .progress-fill { height: 100%; background: #27ae60; width: 100%; transition: width 2s; }
+        
+        /* Search Suggestion Box (Google Style) */
+        .search-results { 
+            display: none; position: absolute; background: white; width: 90%; 
+            max-height: 150px; overflow-y: auto; z-index: 10000; 
+            border: 1px solid #ccc; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            margin-top: -8px;
+        }
+        .result-item { padding: 12px; border-bottom: 1px solid #eee; cursor: pointer; font-size: 13px; color: #333; }
+        .result-item:hover { background: #f1f1f1; color: #27ae60; }
+
+        /* Map UI */
+        #map { width: 100%; height: 260px; border-radius: 10px; border: 1px solid #ddd; margin: 10px 0; z-index: 1; }
+        .gps-fab { 
+            position: absolute; bottom: 80px; right: 30px; z-index: 1000; 
+            background: white; border: 2px solid #27ae60; border-radius: 50%; 
+            width: 40px; height: 40px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+
+        input, select { width: 100%; padding: 10px; border: 2px solid #ecf0f1; border-radius: 8px; box-sizing: border-box; margin-bottom: 8px; font-size: 14px; outline: none; }
+        input:focus { border-color: #27ae60; }
+        
+        .main-btn { width: 100%; padding: 15px; background: #27ae60; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 16px; }
+        .sos-btn { width: 100%; padding: 10px; background: #d63031; color: white; border: none; border-radius: 8px; font-weight: bold; margin-bottom: 10px; cursor: pointer; }
+        .pin-label { background: #2d3436; color: white; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: bold; border: 1px solid white; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="app-header">
+        <h1 id="app-name">Vroom Vroom Recycling</h1>
+        <p id="app-sub">The Navigation Pro</p>
+    </div>
+
+    <div class="lang-bar">
+        <select id="lang-select" onchange="changeLanguage(this.value)">
+            <option value="en">English</option>
+            <option value="af">Afrikaans</option>
+            <option value="zu">isiZulu</option>
+            <option value="xh">isiXhosa</option>
+            <option value="st">Sesotho</option>
+            <option value="nso">Sepedi</option>
+            <option value="ts">Xitsonga</option>
+            <option value="tn">Setswana</option>
+            <option value="sw">siSwati</option>
+            <option value="ve">Tshivenda</option>
+            <option value="nr">isiNdebele</option>
+            <option value="sasl">SASL (Sign Language)</option>
+        </select>
+    </div>
+
+    <div class="power-tab">
+        <div style="display:flex; justify-content:space-between; font-size:11px;">
+            <span id="txt-charge">🔋 System: <span id="batt-level">100%</span></span>
+            <span id="txt-solar" style="color:#f1c40f">☀️ Solar Active</span>
+        </div>
+        <div class="progress-bar"><div id="batt-bar" class="progress-fill" style="width: 100%;"></div></div>
+        <div style="font-size:10px; display:flex; justify-content:space-between; margin-top:4px;">
+            <span>GPS: <span id="gps-stat" style="color:#27ae60">Online</span></span>
+            <span>⏳ <span id="time-rem">8h 0m</span> <span id="txt-left">remaining</span></span>
+        </div>
+    </div>
+
+    <button id="btn-sos" class="sos-btn" onclick="alert('SOS Alert Dispatched!')">⚠️ EMERGENCY SOS</button>
+
+    <label id="lbl-start" style="font-size:11px; font-weight:bold; color:#444;">Start Point</label>
+    <input type="text" id="start-box" placeholder="Type starting address..." oninput="searchLocation(this.value, 'start')">
+    <div id="start-results" class="search-results"></div>
+
+    <label id="lbl-opt" style="font-size:11px; font-weight:bold; color:#444;">Quick-Select Centers</label>
+    <select id="dest-select" onchange="quickSelect(this.value)">
+        <option value="">-- Choose a Facility --</option>
+        <option value="Newtown Buy-Back Centre, Carr Street, Johannesburg">Newtown Buy-Back (CBD)</option>
+        <option value="Soweto Buy-Back Centre, Chris Hani Rd, Soweto">Soweto Hub</option>
+        <option value="Pikitup Garden Site, Waterval, Johannesburg">Waterval Garden Site</option>
+        <option value="Remade Recycling, Longmeadow, Modderfontein">Remade Recycling</option>
+    </select>
+
+    <label id="lbl-end" style="font-size:11px; font-weight:bold; color:#444;">Custom Destination</label>
+    <input type="text" id="end-box" placeholder="Type destination..." oninput="searchLocation(this.value, 'end')">
+    <div id="end-results" class="search-results"></div>
+
+    <button id="btn-gen" class="main-btn" onclick="calculateRoute()">Generate Safest Path</button>
+
+    <div style="position: relative;">
+        <div id="map"></div>
+        <button class="gps-fab" onclick="recenterMap()" title="Snap to Start">📍</button>
+    </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-routing-machine/3.2.12/leaflet-routing-machine.min.js"></script>
+
+<script>
+    const translations = {
+        en: { name: "Vroom Vroom Recycling", sub: "The Navigation Pro", charge: "🔋 System: ", solar: "☀️ Solar Active", left: "remaining", sos: "⚠️ EMERGENCY SOS", start: "Start Point", opt: "Quick-Select Centers", dest: "Custom Destination", generate: "Generate Safest Path" },
+        af: { name: "Vroom Vroom Herwinning", sub: "Die Navigasie Pro", charge: "🔋 Stelsel: ", solar: "☀️ Sonkrag Aktief", left: "oor", sos: "⚠️ NOOD SOS", start: "Beginpunt", opt: "Vinnige Opsies", dest: "Bestemming", generate: "Genereer Pad" },
+        zu: { name: "Vroom Vroom Recycling", sub: "The Navigation Pro", charge: "🔋 Isistimu: ", solar: "☀️ Solar Iyasebenza", left: "kusele", sos: "⚠️ SOS YENGOZI", start: "Indawo Yokuqala", opt: "Izinketho", dest: "Indawo Oya Kuyo", generate: "Thola Indlela Ephephile" },
+        xh: { name: "Vroom Vroom Recycling", sub: "The Navigation Pro", charge: "🔋 Isistim: ", solar: "☀️ Isola Iyasebenza", left: "isekhona", sos: "⚠️ SOS KUNGXAMIWE", start: "Indawo Yokuqala", opt: "Izinketho", dest: "Indawo Oya Kuyo", generate: "Yenza Indlela" },
+        st: { name: "Vroom Vroom Recycling", sub: "The Navigation Pro", charge: "🔋 Sistimi: ", solar: "☀️ Solar e ya sebetsa", left: "e setseng", sos: "⚠️ SOS YA EMERGENCY", start: "Sebaka sa ho qala", opt: "Dikgetho", dest: "Moo o yang", generate: "Etsa Tsela" },
+        nso: { name: "Vroom Vroom Recycling", sub: "The Navigation Pro", charge: "🔋 Sistimi: ", solar: "☀️ Solar e a šoma", left: "e šetšego", sos: "⚠️ SOS YA TŠHOGANYETŠO", start: "Mo o thomelago", opt: "Dikgetho", dest: "Mo o yago", generate: "Dira Tsela" },
+        ts: { name: "Vroom Vroom Recycling", sub: "The Navigation Pro", charge: "🔋 Sisteme: ", solar: "☀️ Solar ya tirha", left: "le ntshe", sos: "⚠️ SOS YA XIHATLA", start: "Laha u sungulaka", opt: "Swin'wana", dest: "Laha u yaka", generate: "Endla Ndlela" },
+        tn: { name: "Vroom Vroom Recycling", sub: "The Navigation Pro", charge: "🔋 Sistimi: ", solar: "☀️ Solar e a bereka", left: "e e setseng", sos: "⚠️ SOS YA TSHOGANYETSO", start: "Tshimologo", opt: "Ditsela", dest: "Kwa o yang teng", generate: "Dira Tsela" },
+        sw: { name: "Vroom Vroom Recycling", sub: "The Navigation Pro", charge: "🔋 Sistimu: ", solar: "☀️ Solar Iyasebenta", left: "lesele", sos: "⚠️ SOS LUPHOYI", start: "Lapho ucala khona", opt: "Tinkhetfo", dest: "Lapho khona", generate: "Kha msebenti" },
+        ve: { name: "Vroom Vroom Recycling", sub: "The Navigation Pro", charge: "🔋 Sisteme: ", solar: "☀️ Solar i khou shuma", left: "yo salaho", sos: "⚠️ SOS YA EMERGENCY", start: "Fhethu ha u thoma", opt: "Zwinwe", dest: "Fhethu ha u ya", generate: "Ita Ndila" },
+        nr: { name: "Vroom Vroom Recycling", sub: "The Navigation Pro", charge: "🔋 Isistimu: ", solar: "☀️ ISolar iyasebenza", left: "eseleko", sos: "⚠️ SOS YERHELO", start: "Ukusuka", opt: "Izinketho", dest: "Ukuya", generate: "Yenza Indlela" },
+        sasl: { name: "Vroom Vroom Recycling", sub: "The Navigation Pro", charge: "🔋 BATT: ", solar: "☀️ SOLAR 👍", left: "TIME", sos: "⚠️ SOS HELP", start: "FROM", opt: "CHOOSE", dest: "TO", generate: "SHOW MAP" }
+    };
+
+    let map, routeControl;
+    let selectedStart = null, selectedEnd = null;
+    let currentLang = 'en';
+
+    function init() {
+        map = L.map('map', { zoomControl: false }).setView([-28.47, 24.67], 5);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+        setInterval(() => {
+            let b = document.getElementById('batt-level');
+            let val = parseInt(b.innerText);
+            if (val > 0) {
+                val -= 1;
+                b.innerText = val + "%";
+                document.getElementById('batt-bar').style.width = val + "%";
+                let totalMins = (val / 100) * 480; 
+                document.getElementById('time-rem').innerText = Math.floor(totalMins/60) + "h " + Math.round(totalMins%60) + "m";
+                updateBatteryLabel(val);
+            }
+        }, 300000); 
+    }
+
+    function changeLanguage(lang) {
+        currentLang = lang;
+        const t = translations[lang];
+        document.getElementById('app-name').innerText = t.name;
+        document.getElementById('app-sub').innerText = t.sub;
+        document.getElementById('txt-solar').innerText = t.solar;
+        document.getElementById('txt-left').innerText = t.left;
+        document.getElementById('btn-sos').innerText = t.sos;
+        document.getElementById('lbl-start').innerText = t.start;
+        document.getElementById('lbl-opt').innerText = t.opt;
+        document.getElementById('lbl-end').innerText = t.dest;
+        document.getElementById('btn-gen').innerText = t.generate;
+        updateBatteryLabel(parseInt(document.getElementById('batt-level').innerText));
+    }
+
+    function updateBatteryLabel(val) {
+        document.getElementById('txt-charge').innerHTML = translations[currentLang].charge + `<span id="batt-level">${val}%</span>`;
+    }
+
+    async function searchLocation(query, type) {
+        if (query.length < 3) return;
+        const resultDiv = document.getElementById(type + '-results');
+        try {
+            const resp = await fetch(`https://nominatim.openstreetmap.org/search?format=json&countrycodes=za&limit=5&q=${encodeURIComponent(query)}`);
+            const data = await resp.json();
+            resultDiv.innerHTML = '';
+            resultDiv.style.display = 'block';
+            data.forEach(item => {
+                let div = document.createElement('div');
+                div.className = 'result-item';
+                let shortAddr = item.display_name.split(',').slice(0, 3).join(',');
+                div.innerText = shortAddr;
+                div.onclick = () => {
+                    document.getElementById(type + '-box').value = shortAddr;
+                    if (type === 'start') selectedStart = [item.lat, item.lon];
+                    else selectedEnd = [item.lat, item.lon];
+                    resultDiv.style.display = 'none';
+                    map.flyTo([item.lat, item.lon], 15);
+                };
+                resultDiv.appendChild(div);
+            });
+        } catch (e) {}
+    }
+
+    async function quickSelect(addr) {
+        if (!addr) return;
+        document.getElementById('end-box').value = addr;
+        const resp = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(addr)}`);
+        const data = await resp.json();
+        if (data.length > 0) {
+            selectedEnd = [data[0].lat, data[0].lon];
+            map.flyTo(selectedEnd, 15);
+        }
+    }
+
+    function recenterMap() { if(selectedStart) map.flyTo(selectedStart, 16); }
+
+    function calculateRoute() {
+        if (!selectedStart || !selectedEnd) { alert("Please select both points!"); return; }
+        if (routeControl) map.removeControl(routeControl);
+        routeControl = L.Routing.control({
+            waypoints: [L.latLng(selectedStart), L.latLng(selectedEnd)],
+            lineOptions: { styles: [{ color: '#27ae60', weight: 8, opacity: 0.8 }] },
+            router: L.Routing.osrmv1({ serviceUrl: 'https://router.project-osrm.org/route/v1', profile: 'foot' }),
+            createMarker: function(i, wp) {
+                return L.marker(wp.latLng).bindTooltip(i === 0 ? "START" : "DESTINATION", { permanent: true, className: 'pin-label' });
+            }
+        }).addTo(map);
+    }
+
+    window.onload = init;
+</script>
+
+</body>
+</html>
+    <script  src="./script.js"></script>
+
+  </body>
+  
+</html>
